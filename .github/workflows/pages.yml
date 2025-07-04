@@ -1,4 +1,4 @@
-name: Build and Deploy Dodge Bird to GitHub Pages
+name: Build and Deploy Dodge-Bird
 
 on:
   push:
@@ -17,12 +17,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install Node
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -33,21 +32,24 @@ jobs:
       - name: Bundle main.js → dist/game.js
         run: |
           mkdir -p dist
-          npx esbuild code/main.js --bundle --outfile=dist/game.js --format=iife
+          npx esbuild code/main.js \
+            --bundle \
+            --outfile=dist/game.js \
+            --format=iife
 
-      - name: Upload site artifact
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: .
 
   deploy:
     needs: build
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
-        id: deployment
+        id: deploy
         uses: actions/deploy-pages@v4
+
