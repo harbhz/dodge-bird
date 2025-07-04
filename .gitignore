@@ -1,6 +1,4 @@
 package-lock.json
 node_modules/
 .DS_Store
-dist/*.map
-dist/game.js
-dist/helper.js
+.github
