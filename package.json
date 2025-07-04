@@ -5,7 +5,8 @@
   "main": "run.js",
   "scripts": {
     "start": "node run.js",
-    "dev": "node run.js"
+    "dev": "node run.js",
+    "build": "npx esbuild code/main.js --bundle --outfile=dist/game.js --format=iife"
   },
   "keywords": [
     "game",
@@ -16,7 +17,6 @@
   "author": "Harshil Bhatia",
   "dependencies": {
     "@replit/database": "^2.0.5",
-    "esbuild": "^0.24.2",
     "express": "^4.21.2",
     "kaboom": "^3000.1.17",
     "ws": "^8.18.3"
@@ -24,6 +24,7 @@
   "devDependencies": {
     "@types/node": "^20.19.4",
     "@types/ws": "^8.18.1",
+    "esbuild": "^0.24.2",
     "typescript": "^5.8.3"
   },
   "engines": {
