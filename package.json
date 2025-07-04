@@ -1,0 +1,32 @@
+{
+  "name": "dodge-bird",
+  "version": "1.0.0",
+  "description": "Dodge Bird - A Flappy Bird clone built with Kaboom.js",
+  "main": "run.js",
+  "scripts": {
+    "start": "node run.js",
+    "dev": "node run.js"
+  },
+  "keywords": [
+    "game",
+    "kaboom",
+    "flappy-bird",
+    "dodge-bird"
+  ],
+  "author": "Harshil Bhatia",
+  "dependencies": {
+    "@replit/database": "^2.0.5",
+    "esbuild": "^0.24.2",
+    "express": "^4.21.2",
+    "kaboom": "^3000.1.17",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.4",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
