@@ -3,20 +3,73 @@ import kaboom from "kaboom";
 kaboom();
 setGravity(2400);
 
+loadRoot(window.location.pathname);
+
 loadSprite("bird", "sprites/bird.png");
 loadSprite("bg", "sprites/bg.png");
 loadSprite("pipe", "sprites/pipe.png");
 loadSound("wooosh", "sounds/wooosh.mp3");
 
-let highScore = 0;
+let highScore = Number(localStorage.getItem("dodgeBirdHighScore")) || 0;
+
+scene("home", () => {
+    add([
+        sprite("bg"),
+        pos(0, 0),
+        scale(width() / 240, height() / 240),
+        z(-1)
+    ]);
+
+    add([
+        text("Dodge Bird", { size: Math.min(width(), height()) * 0.10 }),
+        pos(center()),
+        anchor("center"),
+        color(240, 240, 240)
+    ]);
+
+    add([
+        text("Built by Harshil Bhatia", { size: Math.min(width(), height()) * 0.04 }),
+        pos(center().x, center().y + height() * 0.08),
+        anchor("center"),
+        color(200, 200, 200)
+    ]);
+
+    add([
+        text("Source Code", { size: Math.min(width(), height()) * 0.04 }),
+        pos(center().x, center().y + height() * 0.16),
+        anchor("center"),
+        color(0, 150, 255),
+        area(),
+        "link"
+    ]);
+
+    add([
+        text("Press SPACE / Click / Tap to Start", { size: Math.min(width(), height()) * 0.035 }),
+        pos(center().x, center().y + height() * 0.25),
+        anchor("center"),
+        color(180, 180, 180)
+    ]);
+
+    const start = () => go("game");
+
+    onKeyPress("space", start);
+    onTouchStart(start);
+
+    onMousePress(() => {
+        if (!get("link")[0].isHovering()) start();
+    });
+
+    onClick("link", () => {
+        window.open("https://github.com/harbhz/dodge-bird", "_blank");
+    });
+});
 
 scene("game", () => {
-    const PIPE_SPEED = 500;
-    const PIPE_GAP_MIN = height() * 0.25;
-    const PIPE_GAP_MAX = height() * 0.32;
-    const PIPE_HORIZONTAL_GAP = width() * 0.38;
-
-    const JUMP_FORCE = 800;
+    let pipeSpeed = 500;
+    let pipeGapMin = height() * 0.25;
+    let pipeGapMax = height() * 0.32;
+    let pipeHorizontalGap = width() * 0.38;
+    const jumpForce = 800;
     let score = 0;
 
     add([
@@ -27,9 +80,7 @@ scene("game", () => {
     ]);
 
     const scoreText = add([
-        text(score.toString(), { 
-            size: Math.min(width(), height()) * 0.08
-        }),
+        text("0", { size: Math.min(width(), height()) * 0.08 }),
         pos(20, 20),
         z(10),
         color(255, 255, 255)
@@ -41,20 +92,20 @@ scene("game", () => {
         area(),
         body(),
         scale(Math.min(width(), height()) * 0.003),
-        z(1),
-        "player"
+        anchor("center"),
+        z(1)
     ]);
 
-    function producePipes() {
-        const pipeGap = rand(PIPE_GAP_MIN, PIPE_GAP_MAX);
-        const offset = rand(-height() * 0.1, height() * 0.1);
+    function addPipes() {
+        const gap = rand(pipeGapMin, pipeGapMax);
+        const shift = rand(-height() * 0.10, height() * 0.10);
 
         add([
             sprite("pipe", { flipY: true }),
-            pos(width(), height() / 2 + offset - pipeGap / 2),
+            pos(width(), height() / 2 + shift - gap / 2),
             area(),
             scale(Math.min(width(), height()) * 0.003),
-            move(LEFT, PIPE_SPEED),
+            move(LEFT, pipeSpeed),
             anchor("botleft"),
             "pipe",
             "top-pipe",
@@ -63,142 +114,126 @@ scene("game", () => {
 
         add([
             sprite("pipe"),
-            pos(width(), height() / 2 + offset + pipeGap / 2),
+            pos(width(), height() / 2 + shift + gap / 2),
             area(),
             scale(Math.min(width(), height()) * 0.003),
-            move(LEFT, PIPE_SPEED),
+            move(LEFT, pipeSpeed),
             anchor("topleft"),
-            "pipe",
-            "bottom-pipe"
+            "pipe"
         ]);
     }
 
-    function spawnPipeLoop() {
-        producePipes();
-        const interval = PIPE_HORIZONTAL_GAP / PIPE_SPEED;
-        wait(interval, spawnPipeLoop);
+    function pipeLoop() {
+        addPipes();
+        wait(pipeHorizontalGap / pipeSpeed, pipeLoop);
     }
 
-    spawnPipeLoop();
+    pipeLoop();
 
-    onUpdate("pipe", (pipe) => {
-        if (pipe.is("top-pipe") && !pipe.passed && pipe.pos.x + pipe.width < player.pos.x) {
-            pipe.passed = true;
+    loop(20, () => {
+        pipeSpeed += 40;
+        pipeGapMin = Math.max(height() * 0.18, pipeGapMin * 0.95);
+        pipeGapMax = Math.max(height() * 0.22, pipeGapMax * 0.95);
+        pipeHorizontalGap = Math.max(width() * 0.28, pipeHorizontalGap * 0.95);
+    });
+
+    onUpdate("pipe", (p) => {
+        if (p.is("top-pipe") && !p.passed && p.pos.x + p.width < player.pos.x) {
+            p.passed = true;
             score += 1;
             scoreText.text = score.toString();
         }
-
-        if (pipe.pos.x < -pipe.width - 50) {
-            destroy(pipe);
-        }
+        if (p.pos.x < -p.width - 50) destroy(p);
     });
 
     player.onCollide("pipe", () => {
-        try {
-            play("wooosh");
-        } catch (e) {
-            console.log("Collision sound not available");
-        }
+        play("wooosh");
         go("gameover", score);
     });
 
     player.onUpdate(() => {
-        if (player.pos.y > height() + 30 || player.pos.y < -30) {
-            go("gameover", score);
-        }
+        if (player.pos.y > height() + 30 || player.pos.y < -30) go("gameover", score);
     });
 
-    onKeyPress("space", () => {
-        player.jump(JUMP_FORCE);
-        try {
-            play("wooosh");
-        } catch (e) {
-            console.log("Sound not available");
-        }
-    });
+    const flap = () => {
+        player.jump(jumpForce);
+        play("wooosh");
+    };
 
-    onMousePress(() => {
-        player.jump(JUMP_FORCE);
-        try {
-            play("wooosh");
-        } catch (e) {
-            console.log("Sound not available");
-        }
-    });
-
-    onTouchStart(() => {
-        player.jump(JUMP_FORCE);
-        try {
-            play("wooosh");
-        } catch (e) {
-            console.log("Sound not available");
-        }
-    });
+    onKeyPress("space", flap);
+    onMousePress(flap);
+    onTouchStart(flap);
 });
 
 scene("gameover", (score) => {
     if (score > highScore) {
         highScore = score;
+        localStorage.setItem("dodgeBirdHighScore", highScore.toString());
     }
 
     add([
-        rect(width(), height()),
-        color(0, 0, 0),
-        opacity(0.7),
-        z(0)
+        sprite("bg"),
+        pos(0, 0),
+        scale(width() / 240, height() / 240),
+        z(-1)
     ]);
 
     add([
-        text("GAME OVER!", { 
-            size: Math.min(width(), height()) * 0.08
-        }),
-        pos(center().x, center().y - height() * 0.15),
+        text("GAME OVER", { size: Math.min(width(), height()) * 0.08 }),
+        pos(center().x, center().y - height() * 0.17),
         anchor("center"),
-        color(255, 255, 255),
-        z(1)
+        color(255, 255, 255)
     ]);
 
     add([
-        text(`Score: ${score}`, { 
-            size: Math.min(width(), height()) * 0.05
-        }),
+        text(`Score : ${score}`, { size: Math.min(width(), height()) * 0.05 }),
         pos(center().x, center().y - height() * 0.05),
         anchor("center"),
-        color(255, 255, 255),
-        z(1)
+        color(255, 255, 255)
     ]);
 
     add([
-        text(`High Score: ${highScore}`, { 
-            size: Math.min(width(), height()) * 0.04
-        }),
-        pos(center().x, center().y),
+        text(`Best  : ${highScore}`, { size: Math.min(width(), height()) * 0.04 }),
+        pos(center().x, center().y + height() * 0.02),
         anchor("center"),
-        color(255, 255, 255),
-        z(1)
+        color(255, 255, 255)
     ]);
 
     add([
-        text("Press SPACE or Click to Restart", { 
-            size: Math.min(width(), height()) * 0.03
-        }),
-        pos(center().x, center().y + height() * 0.08),
+        text("Tap = Restart    Swipe = Home", { size: Math.min(width(), height()) * 0.033 }),
+        pos(center().x, center().y + height() * 0.10),
         anchor("center"),
-        color(200, 200, 200),
-        z(1)
+        color(0, 160, 255)
     ]);
 
-    onKeyPress("space", () => {
-        go("game");
+    add([
+        text("SPACE = Restart    R = Home", { size: Math.min(width(), height()) * 0.033 }),
+        pos(center().x, center().y + height() * 0.16),
+        anchor("center"),
+        color(200, 200, 200)
+    ]);
+
+    const restart = () => go("game");
+    onKeyPress("space", restart);
+
+    onKeyPress("r", () => go("home"));
+    onMousePress(() => go("home"));
+
+    let touchStartPos = null;
+    const threshold = 50;
+
+    onTouchStart((p) => {
+        touchStartPos = vec2(p.x, p.y);
     });
 
-    onMousePress(() => {
-        go("game");
-    });
-
-    onTouchStart(() => {
-        go("game");
+    onTouchEnd((p) => {
+        if (!touchStartPos) return;
+        const dx = p.x - touchStartPos.x;
+        const dy = p.y - touchStartPos.y;
+        const dist = Math.hypot(dx, dy);
+        touchStartPos = null;
+        if (dist < threshold) restart(); else go("home");
     });
 });
 
-go("game");
+go("home");
